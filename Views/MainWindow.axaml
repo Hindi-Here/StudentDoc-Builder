@@ -1,0 +1,74 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AvaloniaApplication1.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="AvaloniaApplication1.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="document flow (assessments)"
+		Width="700"
+		Height="300">
+
+	<Grid>
+
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="700"/>
+			<ColumnDefinition Width="1"/>
+			<ColumnDefinition Width="450"/>
+		</Grid.ColumnDefinitions>
+
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+		
+		<StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="10,20,10,0" Grid.Row="0" Grid.Column="0">
+			<TextBlock Text="Access File:" VerticalAlignment="Center" Margin="0,0,10,0" />
+			<TextBox x:Name="AccessFilePath" IsReadOnly="True" Margin="10,0,20,0" Width="400" Height="30"/>
+			<Button Content="Choose File" Click="ChooseAccessFile_Click" Width="117" HorizontalContentAlignment="Center"/>
+			<Button x:Name="LogPanel" Content=">" Click="LogPanel_Click" Margin="10,0,20,0" HorizontalContentAlignment="Center"/>
+		</StackPanel>
+
+		<StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="10,20,10,0" Grid.Row="1" Grid.Column="0">
+			<TextBlock Text="Choose Table:" VerticalAlignment="Center" Margin="0,0,10,0" />
+			<ListBox x:Name="TableList" Margin="10,0,0,0" Height="30" Width="383" SelectionChanged="TableList_SelectionChanged"/>
+		</StackPanel>
+
+		<StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="10,20,10,0" Grid.Row="2" Grid.Column="0">
+			<TextBlock Text="Choose Output Format:" VerticalAlignment="Center" Margin="0,0,10,0" />
+			<ListBox x:Name="OutputFormatList" Margin="10,0,0,0" Height="30" Width="323" SelectionChanged="OutputFormatList_SelectionChanged">
+				<ListBoxItem Content="Статистика успеваемости" />
+				<ListBoxItem Content="Справка ПО ВО" />
+				<ListBoxItem Content="Личная карточка" />
+				<ListBoxItem Content="Портфолио" />
+			</ListBox>
+		</StackPanel>
+
+		<StackPanel Orientation="Horizontal" VerticalAlignment="Top" Margin="10,20,10,0" Grid.Row="3" Grid.Column="0">
+			<TextBlock Text="Output Path:" VerticalAlignment="Center" Margin="0,0,10,0" />
+			<TextBox x:Name="OutputFilePath" IsReadOnly="True" Margin="10,0,20,0" Width="395" Height="30"/>
+			<Button Content="Choose Folder" Click="ChooseOutputFormat_Click" />
+		</StackPanel>
+
+		<StackPanel Orientation="Horizontal" Margin="10,20,10,0" Grid.Row="4" Grid.Column="0">
+			<Button Content="Create Document" Click="CreateDocument_Click" />
+			<TextBlock x:Name="WarningText" VerticalAlignment="Center" Margin="10,0,10,0" FontSize="12" FontWeight="Bold" Foreground="Red" FontStyle="Italic"/>
+		</StackPanel>
+
+		<Border Grid.Column="1" Background="Black" Margin="0,20,0,0" Grid.RowSpan="5"/>
+
+		<StackPanel Orientation="Vertical" Margin="30,20,10,0" Grid.Row="0" Grid.Column="2" Grid.RowSpan="5">
+			<TextBlock Text="Логи выполнения программы:" Margin="10,5,0,0" />
+			<ScrollViewer Width="375" Height="225" VerticalScrollBarVisibility="Auto" Margin="0,10,30,0">
+				<TextBox x:Name="LogTextBox" FontSize="11" IsReadOnly="True" TextWrapping="Wrap"/>
+			</ScrollViewer>
+		</StackPanel>
+
+	</Grid>
+
+</Window>
