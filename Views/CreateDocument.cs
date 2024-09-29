@@ -5,7 +5,7 @@ using System.Linq;
 using Microsoft.Office.Interop.Access.Dao;
 using Spire.Doc;
 
-namespace AvaloniaApplication1.Views
+namespace StudentDoc_Builder.Views
 {
     public class CreateDocument
     {

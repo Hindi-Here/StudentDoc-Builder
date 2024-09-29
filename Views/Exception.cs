@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace AvaloniaApplication1.Views
+namespace StudentDoc_Builder.Views
 {
     public class Exception(MainWindow mainWindow)
     {

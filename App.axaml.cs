@@ -3,10 +3,10 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
-using AvaloniaApplication1.ViewModels;
-using AvaloniaApplication1.Views;
+using StudentDoc_Builder.ViewModels;
+using StudentDoc_Builder.Views;
 
-namespace AvaloniaApplication1
+namespace StudentDoc_Builder
 {
     public partial class App : Application
     {

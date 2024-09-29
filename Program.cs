@@ -1,7 +1,7 @@
 ﻿using Avalonia;
 using System;
 
-namespace AvaloniaApplication1
+namespace StudentDoc_Builder
 {
     internal sealed class Program
     {

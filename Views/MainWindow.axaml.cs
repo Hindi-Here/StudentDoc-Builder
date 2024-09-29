@@ -5,7 +5,7 @@ using Avalonia.Media;
 
 using Microsoft.Office.Interop.Access.Dao;
 
-namespace AvaloniaApplication1.Views
+namespace StudentDoc_Builder.Views
 {
     public partial class MainWindow : Window
     {
