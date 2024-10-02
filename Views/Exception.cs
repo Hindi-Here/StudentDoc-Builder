@@ -57,7 +57,7 @@ namespace StudentDoc_Builder.Views
             else if (accessInfo.D_GetColumnCount() != 7)
             {
                 ShowErrorMessage($"Таблица D={accessInfo._dbTable} не соотвествует формату: \n" +
-                    "[Номер, Код, Дисциплины, Семестр, Отведенные часы, З.Е., К.Е.] [D01]");
+                    "[Номер, Код, Дисциплины, Семестр, Отведенные часы, З.Е., К.Е.] [T07]");
                 return true;
             }
             else if (accessInfo.GetRowCount() - AccessInfo._statictisRow != accessInfo.D_GetRowCount())

@@ -2,8 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using System.Text.RegularExpressions;
 using Microsoft.Office.Interop.Access.Dao;
 using Spire.Doc;
+using Spire.Doc.Documents;
+using Spire.Doc.Fields;
 
 namespace StudentDoc_Builder.Views
 {
@@ -160,6 +163,7 @@ namespace StudentDoc_Builder.Views
 
                 DrawingLine(table, d_disciplines);
 
+                _mainWindow.LogTextBox.Text += $"[Создание справки] Справка ПО ВО для студента {students[i]} из группы {_getTableInfo._dbTable} была успешно создана!\n";
                 document.SaveToFile(wordPath, FileFormat.Docx);
             }
         }
@@ -253,15 +257,15 @@ namespace StudentDoc_Builder.Views
 
         private static void DrawingLine(Table table, List<string> discipline) // отрисовка линий после заполнения таблицы
         {
-            int count = discipline.Where(s => s.StartsWith("ФТД")).Count(); // раньше эти переменные я в аргументы писал, а теперь так
+            int count = discipline.Where(s => s.StartsWith("ФТД")).Count();
             int size = discipline.Count;
 
             for (int cellNumber = 0; cellNumber < 4; cellNumber++)
             {
-                table.Rows[0].Cells[cellNumber].CellFormat.Borders.Top.Color = System.Drawing.Color.Black; // ОК отображает
+                table.Rows[0].Cells[cellNumber].CellFormat.Borders.Top.Color = System.Drawing.Color.Black;
                 table.Rows[0].Cells[cellNumber].CellFormat.Borders.Bottom.Color = System.Drawing.Color.Black;
 
-                table.Rows[size - count].Cells[cellNumber].CellFormat.Borders.Bottom.Color = System.Drawing.Color.Black; // использую данные, полученные из метода в аргументах
+                table.Rows[size - count].Cells[cellNumber].CellFormat.Borders.Bottom.Color = System.Drawing.Color.Black;
                 table.Rows[size + 1].Cells[cellNumber].CellFormat.Borders.Bottom.Color = System.Drawing.Color.Black;
             }
         }
@@ -336,5 +340,263 @@ namespace StudentDoc_Builder.Views
                              .Where(X => !d_SourceTable[X].StartsWith("ФТД"))
                              .Sum(X => int.Parse(SourceContent[X]));
         }
+
+
+
+
+
+        public void CreatePortfolio() // создание документов по шаблону "Справка ПО ВО"
+        {
+            List<string> students = _getTableInfo.GetColumnTitle();
+            AccessInfo InfoFromDisciplineTable = new(_getTableInfo._path, $"D={_getTableInfo._dbTable}");
+            List<string> d_disciplines = InfoFromDisciplineTable.GetColumnValues(2);
+            List<string> d_halfYears = InfoFromDisciplineTable.GetColumnValues(3);
+
+            // создание кол-ва документов = кол-ву студентов группы
+            for (int i = 2; i < _getTableInfo.GetColumnCount(); i++)
+            {
+                string wordPath = $@"{_outputPath}\{students[i]}.docx";
+                List<string> gradesStudent = _getTableInfo.ConvertToFullString(i);
+
+                Spire.Doc.Document document = new(@"Template\Портфолио.docx");
+                document.Replace("{{ФИО студента}}", students[i], true, true);
+
+                // создание таблицы с оценками по семестрам и манипуляция данными
+                BuildGradesTable(document, d_disciplines, d_halfYears, gradesStudent);
+
+                // создание таблицы курсовых работ и манипуляция данными
+                SynchronizeCourseWork(d_disciplines, gradesStudent);
+                BuildCourseTable(document, d_disciplines, gradesStudent);
+                ReturnValues(d_disciplines, gradesStudent, i);
+
+                // создание таблицы практик и манипуляция данными
+                SynchronizePractice(d_disciplines, gradesStudent);
+                BuildPracticeTable(document, d_disciplines, gradesStudent);
+                ReturnValues(d_disciplines, gradesStudent, i);
+
+                _mainWindow.LogTextBox.Text += $"[Создание портфолио] Портфолио для студента {students[i]} из группы {_getTableInfo._dbTable} было успешно создано!\n";
+                document.SaveToFile(wordPath, FileFormat.Docx);
+            }
+        }
+
+        private static void BuildGradesTable(Spire.Doc.Document document, List<string> disciplines, List<string> halfYears, List<string> grades) // создание таблицы оценок студентов по семестрам
+        {
+            Section section = document.Sections[1];
+            TextRange headerText = section.AddParagraph().AppendText("1. Динамика успеваемости обучающегося");
+            headerText.CharacterFormat.Bold = true;
+            SetFont(headerText);
+
+            var uniqueHalfYears = halfYears.Distinct().ToList();
+            foreach (var halfYear in uniqueHalfYears)
+            {
+                section.AddParagraph(); // пустой параграф для отступа между таблицами
+                TextRange textRange = section.AddParagraph().AppendText($"Успеваемость обучающегося по результатам {halfYear} сессии ");
+                textRange.CharacterFormat.Bold = true;
+                SetFont(textRange);
+
+                Table table = section.AddTable(true);
+                int rowCount = halfYears.Count(h => h == halfYear);
+                table.ResetCells(rowCount + 1, 3);
+
+                float cellWidth = section.PageSetup.ClientWidth;
+                float[] cellWidths = [cellWidth * 0.05f, cellWidth * 0.70f, cellWidth * 0.25f];
+                string[] headers = ["Номер", "Дисциплина", "Оценка"];
+
+                for (int i = 0; i < headers.Length; i++)
+                {
+                    var cell = table.Rows[0].Cells[i];
+                    cell.SetCellWidth(cellWidths[i], CellWidthType.Point);
+
+                    var paragraph = cell.AddParagraph();
+                    textRange = paragraph.AppendText(headers[i]);
+                    textRange.CharacterFormat.Bold = true;
+                    SetFont(textRange);
+                    SetTableSetting(paragraph, cell);
+                }
+
+                int rowIndex = 1;
+                for (int i = 0; i < disciplines.Count; i++)
+                {
+                    if (halfYears[i] == halfYear)
+                    {
+                        for (int j = 0; j < headers.Length; j++)
+                        {
+                            var cell = table.Rows[rowIndex].Cells[j];
+                            cell.SetCellWidth(cellWidths[j], CellWidthType.Point);
+
+                            string[] temp = [rowIndex + ".", disciplines[i], grades[i]];
+                            var paragraph = cell.AddParagraph();
+                            textRange = paragraph.AppendText(temp[j]);
+
+                            SetFont(textRange);
+                            SetTableSetting(paragraph, cell);
+                        }
+                        rowIndex++;
+                    }
+                }
+            }
+        }
+
+        private static void BuildCourseTable(Spire.Doc.Document document, List<string> disciplines, List<string> grades) // создание таблицы с данными курсовых
+        {
+            Section section = document.Sections[1];
+            section.AddParagraph();
+
+            TextRange headerText = section.AddParagraph().AppendText("2. Сведения о курсовых работах и курсовых проектах");
+            headerText.CharacterFormat.Bold = true;
+            SetFont(headerText);
+
+            Table table = section.AddTable(true);
+            table.ResetCells(disciplines.Count + 1, 4);
+
+            float cellWidth = section.PageSetup.ClientWidth;
+            float[] cellWidths = [cellWidth * 0.05f, cellWidth * 0.35f, cellWidth * 0.35f, cellWidth * 0.25f];
+            string[] headers = ["№ п/п", "Дисциплина", "Тема работы", "Оценка"];
+
+            for (int i = 0; i < headers.Length; i++)
+            {
+                var cell = table.Rows[0].Cells[i];
+                cell.SetCellWidth(cellWidths[i], CellWidthType.Point);
+
+                var paragraph = cell.AddParagraph();
+                TextRange textRange = paragraph.AppendText(headers[i]);
+
+                textRange.CharacterFormat.Bold = true;
+                SetFont(textRange);
+                SetTableSetting(paragraph, cell);
+            }
+
+            List<string> courseNames = GetNameCourseWork(disciplines);
+            for (int i = 0; i < disciplines.Count; i++)
+            {
+                for (int j = 0; j < headers.Length; j++)
+                {
+                    var cell = table.Rows[i + 1].Cells[j];
+                    cell.SetCellWidth(cellWidths[j], CellWidthType.Point);
+
+                    string[] temp = [(i + 1).ToString() + ".", courseNames[i], "", grades[i]];
+                    var paragraph = cell.AddParagraph();
+                    TextRange textRange = paragraph.AppendText(temp[j]);
+
+                    SetFont(textRange);
+                    SetTableSetting(paragraph, cell);
+                }
+            }
+        }
+
+        private static void BuildPracticeTable(Spire.Doc.Document document, List<string> disciplines, List<string> grades) // создание таблицы с данными о практиках
+        {
+            Section section = document.Sections[1];
+            section.AddParagraph();
+
+            TextRange headerText = section.AddParagraph().AppendText("3. Сведения о практиках");
+            headerText.CharacterFormat.Bold = true;
+            SetFont(headerText);
+
+            Table table = section.AddTable(true);
+            table.ResetCells(disciplines.Count + 1, 5);
+
+            float cellWidth = section.PageSetup.ClientWidth;
+            float[] cellWidths = [cellWidth * 0.05f, cellWidth * 0.30f, cellWidth * 0.30f, cellWidth * 0.10f, cellWidth * 0.25f];
+            string[] headers = ["№ п/п", "Вид практики", "Место прохождения", "Сроки прохождения", "Оценка"];
+
+            for (int i = 0; i < headers.Length; i++)
+            {
+                var cell = table.Rows[0].Cells[i];
+                cell.SetCellWidth(cellWidths[i], CellWidthType.Point);
+
+                var paragraph = cell.AddParagraph();
+                TextRange textRange = paragraph.AppendText(headers[i]);
+
+                textRange.CharacterFormat.Bold = true;
+                SetFont(textRange);
+                SetTableSetting(paragraph, cell);
+            }
+
+            for (int i = 0; i < disciplines.Count; i++)
+            {
+                for (int j = 0; j < headers.Length; j++)
+                {
+                    var cell = table.Rows[i + 1].Cells[j];
+                    cell.SetCellWidth(cellWidths[j], CellWidthType.Point);
+
+                    string[] temp = [(i + 1).ToString() + ".", disciplines[i], "", "", grades[i]];
+                    var paragraph = cell.AddParagraph();
+                    TextRange textRange = paragraph.AppendText(temp[j]);
+
+                    SetFont(textRange);
+                    SetTableSetting(paragraph, cell);
+                }
+            }
+        }
+
+        private static void SetFont(TextRange textRange) // назначение фонта для текста
+        {
+            textRange.CharacterFormat.FontName = "Times New Roman";
+            textRange.CharacterFormat.FontSize = 12;
+        }
+
+        private static void SetTableSetting(Paragraph paragraph, TableCell cell) // центрирование по центру и интервал
+        {
+            paragraph.Format.HorizontalAlignment = Spire.Doc.Documents.HorizontalAlignment.Center;
+            cell.CellFormat.VerticalAlignment = Spire.Doc.Documents.VerticalAlignment.Middle;
+
+            paragraph.Format.LineSpacingRule = 0;
+            paragraph.Format.AfterSpacing = 0;
+        }
+
+        private void ReturnValues(List<string> disciplines, List<string> grades, int index) // вернуть начальные значения
+        {
+            grades.Clear();
+            grades.AddRange(_getTableInfo.ConvertToFullString(index));
+
+            AccessInfo InfoFromDisciplineTable = new(_getTableInfo._path, $"D={_getTableInfo._dbTable}");
+            disciplines.Clear();
+            disciplines.AddRange(InfoFromDisciplineTable.GetColumnValues(2));
+        }
+
+        private static void SynchronizeCourseWork(List<string> disciplines, List<string> grades) // синхронизация оценок и курсовых работ
+        {
+            var coursework = disciplines.Select((disciplines, index) => new { Discipline = disciplines, Grade = grades.ElementAtOrDefault(index) })
+                                        .Where(d => d.Discipline.StartsWith("Курсовая"))
+                                        .ToList();
+
+            disciplines.Clear();
+            grades.Clear();
+
+            foreach (var item in coursework)
+            {
+                disciplines.Add(item.Discipline);
+                if (item.Grade != null)
+                    grades.Add(item.Grade);
+            }
+        }
+
+        private static List<string> GetNameCourseWork(List<string> disciplines) // получить список дисциплин
+        {
+            string pattern = "\"([^\"]+)\"";
+            Regex regex = new(pattern);
+            return disciplines.Where(d => d.StartsWith("Курсовая"))
+                              .Select(d => regex.Match(d).Groups[1].Value)
+                              .ToList();
+        }
+
+        private static void SynchronizePractice(List<string> disciplines, List<string> grades) // синхронизация оценок и курсовых работ
+        {
+            var coursework = disciplines.Select((disciplines, index) => new { Discipline = disciplines, Grade = grades.ElementAtOrDefault(index) })
+                                        .Where(d => d.Discipline.StartsWith("Учебная") || d.Discipline.StartsWith("Производственная"))
+                                        .ToList();
+
+            disciplines.Clear();
+            grades.Clear();
+
+            foreach (var item in coursework)
+            {
+                disciplines.Add(item.Discipline);
+                if (item.Grade != null)
+                    grades.Add(item.Grade);
+            }
+        }
+
     }
 }

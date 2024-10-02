@@ -137,11 +137,14 @@ namespace StudentDoc_Builder.Views
                 case "Справка ПО ВО":
                     CreateDocument Reference = new(OutputFilePath.Text, accessInfo, this);
                     Reference.CreateReference();
-                    WarningText.Text = $"Документы для группы были созданы {tableInfo.DbTable}!";
+                    WarningText.Text = $"Документы для группы {tableInfo.DbTable} были созданы!";
                     break;
                 case "Личная карточка":
                     break;
                 case "Портфолио":
+                    CreateDocument Portfolio = new(OutputFilePath.Text, accessInfo, this);
+                    Portfolio.CreatePortfolio();
+                    WarningText.Text = $"Документы для группы {tableInfo.DbTable} были созданы!";
                     break;
             }
         }
