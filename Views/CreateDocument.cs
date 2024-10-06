@@ -7,6 +7,7 @@ using Microsoft.Office.Interop.Access.Dao;
 using Spire.Doc;
 using Spire.Doc.Documents;
 using Spire.Doc.Fields;
+using Spire.Doc.Formatting;
 
 namespace StudentDoc_Builder.Views
 {
@@ -145,7 +146,7 @@ namespace StudentDoc_Builder.Views
                 string wordPath = $@"{_outputPath}\{students[i]}.docx";
                 List<string> gradesStudent = _getTableInfo.ConvertToFullString(i);
 
-                SynchronizeSorted(d_disciplines, d_credit_units, gradesStudent);
+                SynchronizeSortedFtd(d_disciplines, d_credit_units, gradesStudent);
                 SynchronizeUnique(d_disciplines, d_credit_units, gradesStudent);
 
                 Spire.Doc.Document document = new(@"Template\Справка ПО ВО.docx");
@@ -157,18 +158,17 @@ namespace StudentDoc_Builder.Views
                 float cellWidth = section.PageSetup.ClientWidth;
                 table.ResetCells(d_disciplines.Count + FooterCount, 4);
 
-                SetHeaderTable(table, cellWidth);
-                SetBodyTable(table, cellWidth, d_disciplines, d_credit_units, gradesStudent);
-                SetFooterTable(table, cellWidth, d_disciplines.Count, credit_units_sum, contact_hours_sum);
+                SetHeaderReferenceTable(table, cellWidth);
+                SetBodyReferenceTable(table, cellWidth, d_disciplines, d_credit_units, gradesStudent);
+                SetFooterReferenceTable(table, cellWidth, d_disciplines.Count, credit_units_sum, contact_hours_sum);
 
-                DrawingLine(table, d_disciplines);
+                DrawingReferenceTableLine(table, d_disciplines);
 
-                _mainWindow.LogTextBox.Text += $"[Создание справки] Справка ПО ВО для студента {students[i]} из группы {_getTableInfo._dbTable} была успешно создана!\n";
                 document.SaveToFile(wordPath, FileFormat.Docx);
             }
         }
 
-        private static void SetHeaderTable(Table table, float cellWidth) // шапка таблицы
+        private static void SetHeaderReferenceTable(Table table, float cellWidth) // шапка Reference таблицы
         {
             float[] cellWidths = [cellWidth * 0.05f, cellWidth * 0.60f, cellWidth * 0.10f, cellWidth * 0.25f];
             string[] headers = ["№", "Наименование дисциплины (модуля)", "Объем дисциплины (модуля) в зачетных единицах", "Оценка по дисциплине (модулю)"];
@@ -185,7 +185,7 @@ namespace StudentDoc_Builder.Views
             }
         }
 
-        private static void SetBodyTable(Table table, float cellWidth, List<string> discipline, List<string> credit_units, List<string> contact_hours) // заполнение столбцов в созданных документах
+        private static void SetBodyReferenceTable(Table table, float cellWidth, List<string> discipline, List<string> credit_units, List<string> contact_hours) // заполнение столбцов в созданных документах
         {
             float[] cellWidths = [cellWidth * 0.05f, cellWidth * 0.60f, cellWidth * 0.10f, cellWidth * 0.25f];
             for (int i = 0; i < discipline.Count; i++)
@@ -211,7 +211,7 @@ namespace StudentDoc_Builder.Views
             }
         }
 
-        private static void SetFooterTable(Table table, float cellWidth, int size, int credit_units_sum, double contact_hours_sum) // заполнение строк отчета о количестве часов и единиц
+        private static void SetFooterReferenceTable(Table table, float cellWidth, int size, int credit_units_sum, double contact_hours_sum) // заполнение строк отчета о количестве часов и единиц
         {
             float[] cellWidths = [cellWidth * 0.05f, cellWidth * 0.60f, cellWidth * 0.10f, cellWidth * 0.25f];
 
@@ -255,7 +255,7 @@ namespace StudentDoc_Builder.Views
             }
         }
 
-        private static void DrawingLine(Table table, List<string> discipline) // отрисовка линий после заполнения таблицы
+        private static void DrawingReferenceTableLine(Table table, List<string> discipline) // отрисовка линий после заполнения таблицы
         {
             int count = discipline.Where(s => s.StartsWith("ФТД")).Count();
             int size = discipline.Count;
@@ -270,7 +270,7 @@ namespace StudentDoc_Builder.Views
             }
         }
 
-        private static void SynchronizeSorted(List<string> d_disciplines, List<string> d_credit_units, List<string> gradesStudent) // сортировка и синхронизация на ФТД
+        private static void SynchronizeSortedFtd(List<string> d_disciplines, List<string> d_credit_units, List<string> gradesStudent) // сортировка и синхронизация на ФТД
         {
             var sortedIndices = d_disciplines
                 .Select((discipline, index) => new { Discipline = discipline, Index = index })
@@ -345,14 +345,13 @@ namespace StudentDoc_Builder.Views
 
 
 
-        public void CreatePortfolio() // создание документов по шаблону "Справка ПО ВО"
+        public void CreatePortfolio() // создание документов по шаблону "Портфолио"
         {
             List<string> students = _getTableInfo.GetColumnTitle();
             AccessInfo InfoFromDisciplineTable = new(_getTableInfo._path, $"D={_getTableInfo._dbTable}");
             List<string> d_disciplines = InfoFromDisciplineTable.GetColumnValues(2);
             List<string> d_halfYears = InfoFromDisciplineTable.GetColumnValues(3);
 
-            // создание кол-ва документов = кол-ву студентов группы
             for (int i = 2; i < _getTableInfo.GetColumnCount(); i++)
             {
                 string wordPath = $@"{_outputPath}\{students[i]}.docx";
@@ -367,14 +366,13 @@ namespace StudentDoc_Builder.Views
                 // создание таблицы курсовых работ и манипуляция данными
                 SynchronizeCourseWork(d_disciplines, gradesStudent);
                 BuildCourseTable(document, d_disciplines, gradesStudent);
-                ReturnValues(d_disciplines, gradesStudent, i);
+                ReturnPortfolioValues(d_disciplines, gradesStudent, i);
 
                 // создание таблицы практик и манипуляция данными
                 SynchronizePractice(d_disciplines, gradesStudent);
                 BuildPracticeTable(document, d_disciplines, gradesStudent);
-                ReturnValues(d_disciplines, gradesStudent, i);
+                ReturnPortfolioValues(d_disciplines, gradesStudent, i);
 
-                _mainWindow.LogTextBox.Text += $"[Создание портфолио] Портфолио для студента {students[i]} из группы {_getTableInfo._dbTable} было успешно создано!\n";
                 document.SaveToFile(wordPath, FileFormat.Docx);
             }
         }
@@ -545,7 +543,7 @@ namespace StudentDoc_Builder.Views
             paragraph.Format.AfterSpacing = 0;
         }
 
-        private void ReturnValues(List<string> disciplines, List<string> grades, int index) // вернуть начальные значения
+        private void ReturnPortfolioValues(List<string> disciplines, List<string> grades, int index) // вернуть начальные значения
         {
             grades.Clear();
             grades.AddRange(_getTableInfo.ConvertToFullString(index));
@@ -596,6 +594,220 @@ namespace StudentDoc_Builder.Views
                 if (item.Grade != null)
                     grades.Add(item.Grade);
             }
+        }
+
+
+
+
+        public void CreatePersonalCard() // создание документов по шаблону "Личная справка"
+        {
+            List<string> students = _getTableInfo.GetColumnTitle();
+
+            AccessInfo InfoFromDisciplineTable = new(_getTableInfo._path, $"D={_getTableInfo._dbTable}");
+            List<string> d_disciplines = InfoFromDisciplineTable.GetColumnValues(2);
+            List<string> d_halfYears = InfoFromDisciplineTable.GetColumnValues(3);
+            List<string> d_hours = InfoFromDisciplineTable.GetColumnValues(4);
+            List<string> d_creditUnits = InfoFromDisciplineTable.GetColumnValues(5);
+
+            for (int i = 2; i < _getTableInfo.GetColumnCount(); i++)
+            {
+                string wordPath = $@"{_outputPath}\{students[i]}.docx";
+
+                Spire.Doc.Document document = new(@"Template\личная-карточка.docx");
+                document.Replace("{{ФИО студента}}", students[i], true, true);
+
+                BuildCardTable(document, d_halfYears, d_disciplines, d_hours, d_creditUnits);
+
+                document.SaveToFile(wordPath, FileFormat.Docx);
+            }
+        }
+
+        private void BuildCardTable(Spire.Doc.Document document, List<string> halfYears, List<string> disciplines, List<string> hours, List<string> creditUnits) // создание таблиц личных-карточек
+        {
+            Section section = document.Sections[1];
+            float cellWidth = section.PageSetup.ClientWidth;
+            float[] cellWidths = [cellWidth * 0.05f,cellWidth * 0.45f,cellWidth * 0.06f,cellWidth * 0.06f, cellWidth * 0.06f,
+                                  cellWidth * 0.06f,cellWidth * 0.06f,cellWidth * 0.06f,cellWidth * 0.14f];
+
+            for (int year = 1; year <= 5; year++)
+            {
+                SynchronizeSemester(year, disciplines, halfYears, hours, creditUnits);
+
+                Table table = section.AddTable(true);
+                table.ResetCells(disciplines.Count + 3, 9);
+
+                for (int row = 0; row < disciplines.Count + 3; row++)
+                    for (int column = 0; column < cellWidths.Length; column++)
+                        table.Rows[row].Cells[column].SetCellWidth(cellWidths[column], CellWidthType.Point);
+
+                SetHeaderCardTable(document, table, year);
+                SetBodyCardTable(table, disciplines, halfYears, hours, creditUnits);
+
+                ReturnCardValues(disciplines, halfYears, hours, creditUnits);
+
+                section.AddParagraph();
+                section.AddParagraph();
+                section.AddParagraph().AppendText("Директор института ____________________________________");
+                section.AddParagraph();
+                section.AddParagraph();
+            }
+        }
+
+        private static void SetHeaderCardTable(Spire.Doc.Document document, Table table, int year) // шапка Card таблиц
+        {
+            MergeCells(table);
+
+            TableCell headerCell = table.Rows[0].Cells[0];
+            Paragraph paragraph = headerCell.AddParagraph();
+
+            CharacterFormat charFormat = new(document)
+            {
+                Bold = true,
+                FontName = "Times New Roman",
+                FontSize = 12
+            };
+
+            paragraph.AppendText($"{year} курс 2023-2024 учебного года").ApplyCharacterFormat(charFormat);
+            paragraph.Format.HorizontalAlignment = Spire.Doc.Documents.HorizontalAlignment.Center;
+
+            SetCellText(table, charFormat);
+        }
+
+        private static void SetBodyCardTable(Table table, List<string> disciplines, List<string> halfYears, List<string> hours, List<string> creditUnits) // заполнение тела таблицы
+        {
+            for (int i = 0; i < disciplines.Count; i++)
+            {
+                for (int j = 0; j < 9; j++)
+                {
+                    var cell = table.Rows[i + 3].Cells[j];
+
+                    string[] temp = ["", disciplines[i], hours[i], creditUnits[i], "", "", "", "", ""];
+                    var paragraph = cell.AddParagraph();
+                    paragraph.AppendText(temp[j]);
+
+                    if (j != 1)
+                    {
+                        paragraph.Format.HorizontalAlignment = Spire.Doc.Documents.HorizontalAlignment.Center;
+                        cell.CellFormat.VerticalAlignment = Spire.Doc.Documents.VerticalAlignment.Middle;
+                    }
+                }
+            }
+
+            MergeSemesterCells(table, halfYears);
+        }
+
+        private static void CellText(TableCell cell, string text, CharacterFormat charFormat) // форматирование текста
+        {
+            Paragraph paragraph = cell.AddParagraph();
+            paragraph.AppendText(text).ApplyCharacterFormat(charFormat);
+            paragraph.Format.HorizontalAlignment = Spire.Doc.Documents.HorizontalAlignment.Center;
+            cell.CellFormat.VerticalAlignment = Spire.Doc.Documents.VerticalAlignment.Middle;
+        }
+
+        private static void SetCellText(Table table, CharacterFormat charFormat) // запись данных в таблицу
+        {
+            CellText(table.Rows[1].Cells[0], "Наименование дисциплины\n(без сокращения)", charFormat);
+            CellText(table.Rows[1].Cells[2], "Кол-во", charFormat);
+            CellText(table.Rows[1].Cells[4], "Экзамен. оценка", charFormat);
+            CellText(table.Rows[1].Cells[6], "Отметка о зачете", charFormat);
+            CellText(table.Rows[1].Cells[8], "Дата и № ведомости", charFormat);
+
+            CellText(table.Rows[2].Cells[2], "час", charFormat);
+            CellText(table.Rows[2].Cells[3], "зач. ед.", charFormat);
+            CellText(table.Rows[2].Cells[4], "оц.", charFormat);
+            CellText(table.Rows[2].Cells[5], "балл", charFormat);
+            CellText(table.Rows[2].Cells[6], "оц.", charFormat);
+            CellText(table.Rows[2].Cells[7], "балл", charFormat);
+        }
+
+        private static void MergeCells(Table table) // объединение ячеек
+        {
+            table.ApplyHorizontalMerge(0, 0, 8);
+
+            table.ApplyHorizontalMerge(1, 0, 1);
+            table.ApplyHorizontalMerge(2, 0, 1);
+            table.ApplyHorizontalMerge(1, 2, 3);
+            table.ApplyHorizontalMerge(1, 4, 5);
+            table.ApplyHorizontalMerge(1, 6, 7);
+
+            table.ApplyVerticalMerge(0, 1, 2);
+            table.ApplyVerticalMerge(8, 1, 2);
+        }
+
+        private static void MergeSemesterCells(Table table, List<string> halfYears) // объединение ячеек семестров
+        {
+            if (halfYears.Count == 0) return;
+
+            int startRow = 3;
+            string currentSemester = halfYears[0];
+            int count = 1;
+
+            for (int i = 1; i < halfYears.Count; i++)
+            {
+                if (halfYears[i] == currentSemester)
+                {
+                    count++;
+                }
+                else
+                {
+                    table.ApplyVerticalMerge(0, startRow, startRow + count - 1);
+
+                    currentSemester = halfYears[i];
+                    startRow = i + 3;
+                    count = 1;
+                }
+            }
+
+            table.ApplyVerticalMerge(0, startRow, startRow + count - 1);
+        }
+
+        private static void SynchronizeSemester(int year, List<string> disciplines, List<string> halfYears, List<string> hours, List<string> creditUnits) // синхронизация данных по семестрам
+        {
+            int startSemester = (year - 1) * 2 + 1;
+            int endSemester = startSemester + 1;
+
+            var coursework = disciplines.Select((discipline, index) => new
+            {
+                Discipline = discipline,
+                Semester = halfYears.ElementAtOrDefault(index),
+                Hour = hours.ElementAtOrDefault(index),
+                CreditUnit = creditUnits.ElementAtOrDefault(index)
+            })
+            .Where(d => int.TryParse(d.Semester, out int semester) && semester >= startSemester && semester <= endSemester)
+            .ToList();
+
+            disciplines.Clear();
+            hours.Clear();
+            creditUnits.Clear();
+            halfYears.Clear();
+
+            foreach (var item in coursework)
+            {
+                disciplines.Add(item.Discipline);
+                if (item.Semester != null)
+                    halfYears.Add(item.Semester);
+
+                if (item.Hour != null)
+                    hours.Add(item.Hour);
+
+                if (item.CreditUnit != null)
+                    creditUnits.Add(item.CreditUnit);
+            }
+        }
+
+        private void ReturnCardValues(List<string> disciplines, List<string> halfYears, List<string> hours, List<string> creditUnits) // вернуть начальные значения
+        {
+            AccessInfo InfoFromDisciplineTable = new(_getTableInfo._path, $"D={_getTableInfo._dbTable}");
+
+            disciplines.Clear();
+            hours.Clear();
+            creditUnits.Clear();
+            halfYears.Clear();
+
+            disciplines.AddRange(InfoFromDisciplineTable.GetColumnValues(2));
+            halfYears.AddRange(InfoFromDisciplineTable.GetColumnValues(3));
+            hours.AddRange(InfoFromDisciplineTable.GetColumnValues(4));
+            creditUnits.AddRange(InfoFromDisciplineTable.GetColumnValues(5));
         }
 
     }

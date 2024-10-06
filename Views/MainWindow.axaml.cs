@@ -140,6 +140,9 @@ namespace StudentDoc_Builder.Views
                     WarningText.Text = $"Документы для группы {tableInfo.DbTable} были созданы!";
                     break;
                 case "Личная карточка":
+                    CreateDocument Card = new(OutputFilePath.Text, accessInfo, this);
+                    Card.CreatePersonalCard();
+                    WarningText.Text = $"Документы для группы {tableInfo.DbTable} были созданы!";
                     break;
                 case "Портфолио":
                     CreateDocument Portfolio = new(OutputFilePath.Text, accessInfo, this);

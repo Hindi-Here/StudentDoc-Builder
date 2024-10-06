@@ -54,12 +54,6 @@ namespace StudentDoc_Builder.Views
                 ShowErrorMessage("Не существует таблицы с меткой D= для выбранной таблицы [T03]");
                 return true;
             }
-            else if (accessInfo.D_GetColumnCount() != 7)
-            {
-                ShowErrorMessage($"Таблица D={accessInfo._dbTable} не соотвествует формату: \n" +
-                    "[Номер, Код, Дисциплины, Семестр, Отведенные часы, З.Е., К.Е.] [T07]");
-                return true;
-            }
             else if (accessInfo.GetRowCount() - AccessInfo._statictisRow != accessInfo.D_GetRowCount())
             {
                 ShowErrorMessage("Имеются расхождения в количестве дисцилин между таблицами. \n" +
@@ -85,7 +79,20 @@ namespace StudentDoc_Builder.Views
                         return true;
                     }
                 }
-            } 
+            }
+
+            if (accessInfo.D_GetColumnCount() != 7)
+            {
+                ShowErrorMessage($"Таблица D={accessInfo._dbTable} не соотвествует формату: \n" +
+                    "[Номер, Код, Дисциплины, Семестр, Отведенные часы, З.Е., К.Е.] [T07]");
+                return true;
+            }
+            else if (!accessInfo.CheckOnValues().isMatch)
+            {
+                ShowErrorMessage($"Таблица D={accessInfo._dbTable} имеет некорректные значения \n" +
+                    $"в столбце {accessInfo.CheckOnValues().column} [T08]");
+                return true;
+            }
 
             return false; 
         } 

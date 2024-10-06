@@ -87,7 +87,7 @@ namespace StudentDoc_Builder.Views
             int rowCount = tabledef.RecordCount;
             List<string> columnValues = [];
 
-            string query = $"SELECT * FROM [{_dbTable}] ORDER BY [{tabledef.Fields[0].Name}]";
+            string query = $"SELECT * FROM [{_dbTable}]";
             Recordset recordset = database.OpenRecordset(query);
 
             for (int i = 0; i < rowCount; i++)
@@ -109,7 +109,7 @@ namespace StudentDoc_Builder.Views
             int columnCount = tabledef.Fields.Count;
             List<string> rowValues = [];
 
-            string query = $"SELECT * FROM [{_dbTable}] ORDER BY [{tabledef.Fields[0].Name}]";
+            string query = $"SELECT * FROM [{_dbTable}]";
             Recordset recordset = database.OpenRecordset(query);
             recordset.Move(rowIndex);
 
@@ -127,7 +127,7 @@ namespace StudentDoc_Builder.Views
         {
             ["3"] = 3,
             ["4"] = 4,
-            ["5"] = 5
+            ["5"] = 5,
         };
 
         public List<int> ConvertToNumber(int columnIndex) // получение числовых оценок для указанного столбца
@@ -135,7 +135,7 @@ namespace StudentDoc_Builder.Views
             Database database = OpenBase();
             TableDef tabledef = database.TableDefs[_dbTable];
 
-            string query = $"SELECT * FROM [{_dbTable}] ORDER BY [{tabledef.Fields[0].Name}]";
+            string query = $"SELECT * FROM [{_dbTable}]";
             Recordset recordset = database.OpenRecordset(query);
 
             List<int> ints = [];
@@ -172,7 +172,7 @@ namespace StudentDoc_Builder.Views
             Database database = OpenBase();
             TableDef tabledef = database.TableDefs[_dbTable];
 
-            string query = $"SELECT * FROM [{_dbTable}] ORDER BY [{tabledef.Fields[0].Name}]";
+            string query = $"SELECT * FROM [{_dbTable}]";
             Recordset recordset = database.OpenRecordset(query);
 
             List<string> strings = [];
@@ -208,8 +208,6 @@ namespace StudentDoc_Builder.Views
 
         public (bool isMatch, int row) CheckOnName() // проверка на совпадение дисциплин из двух таблиц
         {
-            Database database = OpenBase();
-
             List<string> disciplines = GetColumnValues(1);
             AccessInfo InfoFromDisciplineTable = new(_path, $"D={_dbTable}");
             List<string> d_disciplines = InfoFromDisciplineTable.GetColumnValues(2);
@@ -218,15 +216,23 @@ namespace StudentDoc_Builder.Views
 
             HashSet<string> disciplineSet = new(d_disciplines);
             for (int i = 0; i < validDisciplineCount; i++)
-            {
                 if (!disciplineSet.Contains(disciplines[i]))
-                {
-                    database.Close();
                     return (false, i + 1);
-                }
-            }
 
-            database.Close();
+            return (true, 0);
+        }
+
+        public (bool isMatch, int column) CheckOnValues() // проверка на числовые данные для D= таблиц
+        {
+            AccessInfo InfoFromDisciplineTable = new(_path, $"D={_dbTable}");
+            for (int i = 3; i <= 6; i++) // задаем диапазон числовых столбцов
+            {
+                List<string> columnValues = InfoFromDisciplineTable.GetColumnValues(i);
+
+                foreach (var value in columnValues)
+                    if (string.IsNullOrWhiteSpace(value) || !double.TryParse(value, out _))
+                        return (false, i);
+            }
             return (true, 0);
         }
     }
