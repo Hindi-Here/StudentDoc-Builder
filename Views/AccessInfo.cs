@@ -87,8 +87,7 @@ namespace StudentDoc_Builder.Views
             int rowCount = tabledef.RecordCount;
             List<string> columnValues = [];
 
-            string query = $"SELECT * FROM [{_dbTable}]";
-            Recordset recordset = database.OpenRecordset(query);
+            Recordset recordset = database.OpenRecordset(tabledef.Name);
 
             for (int i = 0; i < rowCount; i++)
             {
@@ -109,8 +108,7 @@ namespace StudentDoc_Builder.Views
             int columnCount = tabledef.Fields.Count;
             List<string> rowValues = [];
 
-            string query = $"SELECT * FROM [{_dbTable}]";
-            Recordset recordset = database.OpenRecordset(query);
+            Recordset recordset = database.OpenRecordset(tabledef.Name);
             recordset.Move(rowIndex);
 
             for (int i = 0; i < columnCount; i++)
@@ -135,8 +133,7 @@ namespace StudentDoc_Builder.Views
             Database database = OpenBase();
             TableDef tabledef = database.TableDefs[_dbTable];
 
-            string query = $"SELECT * FROM [{_dbTable}]";
-            Recordset recordset = database.OpenRecordset(query);
+            Recordset recordset = database.OpenRecordset(tabledef.Name);
 
             List<int> ints = [];
 
@@ -172,8 +169,7 @@ namespace StudentDoc_Builder.Views
             Database database = OpenBase();
             TableDef tabledef = database.TableDefs[_dbTable];
 
-            string query = $"SELECT * FROM [{_dbTable}]";
-            Recordset recordset = database.OpenRecordset(query);
+            Recordset recordset = database.OpenRecordset(tabledef.Name);
 
             List<string> strings = [];
 
@@ -212,11 +208,8 @@ namespace StudentDoc_Builder.Views
             AccessInfo InfoFromDisciplineTable = new(_path, $"D={_dbTable}");
             List<string> d_disciplines = InfoFromDisciplineTable.GetColumnValues(2);
 
-            int validDisciplineCount = disciplines.Count - _statictisRow;
-
-            HashSet<string> disciplineSet = new(d_disciplines);
-            for (int i = 0; i < validDisciplineCount; i++)
-                if (!disciplineSet.Contains(disciplines[i]))
+            for (int i = 0; i < disciplines.Count - _statictisRow; i++)
+                if (!d_disciplines.Contains(disciplines[i]))
                     return (false, i + 1);
 
             return (true, 0);
@@ -234,6 +227,28 @@ namespace StudentDoc_Builder.Views
                         return (false, i);
             }
             return (true, 0);
+        }
+
+        public bool CheckOnSemesterRange() // проверка упорядоченность семестров
+        {
+            AccessInfo InfoFromDisciplineTable = new(_path, $"D={_dbTable}");
+            List<string> semesterList = InfoFromDisciplineTable.GetColumnValues(3);
+            List<int> semesterIntList = [];
+
+            foreach (string value in semesterList)
+            {
+                if (int.TryParse(value, out int semester))
+                {
+                    semesterIntList.Add(semester);
+                }
+            }
+
+            for (int i = 1; i < semesterIntList.Count; i++) 
+            {
+                if (semesterIntList[i - 1] > semesterIntList[i])
+                      return false;
+            }
+            return true;
         }
     }
 }

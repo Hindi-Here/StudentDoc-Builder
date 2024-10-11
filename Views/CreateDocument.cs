@@ -34,9 +34,9 @@ namespace StudentDoc_Builder.Views
         public void FillGradeStats() // заполнение статистики оценок в БД
         {
             double[] Avg = AvgGrade();
-            int[] Three = ThreeCount();
-            int[] Good = GoodCount();
-            int[] Excellent = ExcellentCount();
+            int[] Three = GradesCount(3);
+            int[] Good = GradesCount(4);
+            int[] Excellent = GradesCount(5);
 
             Database database = _getTableInfo.OpenBase();
             Recordset recordset = database.OpenRecordset(_getTableInfo._dbTable);
@@ -83,46 +83,22 @@ namespace StudentDoc_Builder.Views
 
             for (int i = 2; i < AvgList.Length; i++)
             {
-                AvgList[i] = _getTableInfo.ConvertToNumber(i).Average();
+                AvgList[i] = Math.Round(_getTableInfo.ConvertToNumber(i).Average(), 2);
             }
 
             return AvgList;
         }
 
-        private int[] ThreeCount() // колличество троек у студента
+        private int[] GradesCount(int grade) // подсчет количества оценок
         {
-            int[] ThreeCount = new int[_getTableInfo.GetColumnCount()];
-            for (int i = 2; i < ThreeCount.Length; i++)
+            int[] GradesCount = new int[_getTableInfo.GetColumnCount()];
+            for (int i = 2; i < GradesCount.Length; i++)
             {
                 List<int> numbers = _getTableInfo.ConvertToNumber(i);
-                ThreeCount[i] = numbers.Count(n => n == 3);
+                GradesCount[i] = numbers.Count(n => n == grade);
             }
 
-            return ThreeCount;
-        }
-
-        private int[] GoodCount() // колличество четверок у студента
-        {
-            int[] GoodCount = new int[_getTableInfo.GetColumnCount()];
-            for (int i = 2; i < GoodCount.Length; i++)
-            {
-                List<int> numbers = _getTableInfo.ConvertToNumber(i);
-                GoodCount[i] = numbers.Count(n => n == 4);
-            }
-
-            return GoodCount;
-        }
-
-        private int[] ExcellentCount() // колличество пятерок у студента
-        {
-            int[] ExcellentCount = new int[_getTableInfo.GetColumnCount()];
-            for (int i = 2; i < ExcellentCount.Length; i++)
-            {
-                List<int> numbers = _getTableInfo.ConvertToNumber(i);
-                ExcellentCount[i] = numbers.Count(n => n == 5);
-            }
-
-            return ExcellentCount;
+            return GradesCount;
         }
 
 
@@ -138,7 +114,7 @@ namespace StudentDoc_Builder.Views
             List<string> d_credit_units = InfoFromDisciplineTable.GetColumnValues(5);
 
             int credit_units_sum = GetSumWithoutFTD(d_disciplines, d_credit_units);
-            double contact_hours_sum = InfoFromDisciplineTable.GetColumnValues(6).Sum(double.Parse);
+            double contact_hours_sum = Math.Round(InfoFromDisciplineTable.GetColumnValues(6).Sum(double.Parse), 2);
 
             // создание кол-ва документов = кол-ву студентов группы
             for (int i = 2; i < _getTableInfo.GetColumnCount(); i++)
@@ -164,6 +140,7 @@ namespace StudentDoc_Builder.Views
 
                 DrawingReferenceTableLine(table, d_disciplines);
 
+                _mainWindow.LogTextBox.Text += $"[Создание справки] Справка ПО ВО для студента {students[i]} из группы {_getTableInfo._dbTable} была успешно создана!\n";
                 document.SaveToFile(wordPath, FileFormat.Docx);
             }
         }
@@ -272,8 +249,7 @@ namespace StudentDoc_Builder.Views
 
         private static void SynchronizeSortedFtd(List<string> d_disciplines, List<string> d_credit_units, List<string> gradesStudent) // сортировка и синхронизация на ФТД
         {
-            var sortedIndices = d_disciplines
-                .Select((discipline, index) => new { Discipline = discipline, Index = index })
+            var sortedIndices = d_disciplines.Select((discipline, index) => new { Discipline = discipline, Index = index })
                 .OrderBy(x => x.Discipline.StartsWith("ФТД") ? 1 : 0)
                 .Select(x => x.Index)
                 .ToList();
@@ -373,6 +349,7 @@ namespace StudentDoc_Builder.Views
                 BuildPracticeTable(document, d_disciplines, gradesStudent);
                 ReturnPortfolioValues(d_disciplines, gradesStudent, i);
 
+                _mainWindow.LogTextBox.Text += $"[Создание портфолио] Портфолио для студента {students[i]} из группы {_getTableInfo._dbTable} было успешно создано!\n";
                 document.SaveToFile(wordPath, FileFormat.Docx);
             }
         }
@@ -618,6 +595,7 @@ namespace StudentDoc_Builder.Views
 
                 BuildCardTable(document, d_halfYears, d_disciplines, d_hours, d_creditUnits);
 
+                _mainWindow.LogTextBox.Text += $"[Создание карточки] Личная карточка для студента {students[i]} из группы {_getTableInfo._dbTable} было успешно создано!\n";
                 document.SaveToFile(wordPath, FileFormat.Docx);
             }
         }

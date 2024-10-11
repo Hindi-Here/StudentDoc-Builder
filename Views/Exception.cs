@@ -93,9 +93,14 @@ namespace StudentDoc_Builder.Views
                     $"в столбце {accessInfo.CheckOnValues().column} [T08]");
                 return true;
             }
+            else if (!accessInfo.CheckOnSemesterRange())
+            {
+                ShowErrorMessage($"Семестры в D={accessInfo._dbTable} имеют неупорядоченный вид [T09]");
+                return true;
+            }
 
             return false; 
-        } 
+        }
 
         public void ShowErrorMessage(string message) => _mainWindow.WarningText.Text = message;
 
